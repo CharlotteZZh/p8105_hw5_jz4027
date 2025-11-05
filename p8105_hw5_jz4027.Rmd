@@ -6,6 +6,7 @@ output: github_document
 ---
 ```{r, include = FALSE, message = FALSE, warning = FALSE}
 library(tidyverse)
+library(broom)
 
 knitr::opts_chunk$set(
 	echo = TRUE,
@@ -24,6 +25,8 @@ options(
 
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
+
+set.seed(1)
 ```
 
 # Problem 1
@@ -70,3 +73,59 @@ bday_sim_results |>
   theme_minimal()
 ```
 The plot shows that as the number of people in the room increases, the probability of shared birthday also increases. The probability of shared birthday approaches 1 as the number of people approaching 50. Around 23 people, the probability is approximately 0.5, meaning that there is a 50% chance that two people share the same birthday.
+
+# Problem 2
+```{r}
+# Simulate the data and conduct one sample t-test
+# 7 mu, 5000 simulations each, sample n = 30
+sim_results <- expand_grid(
+  mu = 0:6,
+  iter = 1:5000
+) |> 
+  mutate(
+    data = map(mu, ~ rnorm(30, mean = .x, sd = 5)),
+    test = map(data, ~ t.test(.x, mu = 0)),
+    tidy = map(test, tidy)
+  ) |> 
+  unnest(tidy) |> 
+  select(mu, estimate, p.value)
+```
+
+```{r}
+power_results <- sim_results |>
+  group_by(mu) |>
+  summarize(
+    power = mean(p.value < 0.05),
+    avg_estimate_all = mean(estimate),
+    avg_estimate_rejected = mean(estimate[p.value < 0.05])
+  )
+```
+
+```{r}
+# Power vs True Mean graph
+power_results |>
+  ggplot(aes(x = mu, y = power)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    x = "True Mean (μ)",
+    y = "Power (proportion of times the null was rejected)",
+    title = "Power vs True Mean"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Mean vs. Estimated Mean graph
+power_results |>
+  ggplot(aes(x = mu)) +
+  geom_line(aes(y = avg_estimate_all, color = "All samples"), linewidth = 1) +
+  geom_line(aes(y = avg_estimate_rejected, color = "Null rejected only"), linewidth = 1) +
+  labs(
+    x = "True Mean (μ)",
+    y = "Average Estimated Mean",
+    title = "Average Estimates vs True Mean",
+    color = "Condition"
+  ) +
+  theme_minimal()
+```
