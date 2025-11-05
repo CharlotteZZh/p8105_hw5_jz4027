@@ -1,0 +1,72 @@
+---
+title: "p8105_hw5_jz4027"
+author: "Charlotte Zhang"
+date: "2025-11-04"
+output: github_document
+---
+```{r, include = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+# Problem 1
+```{r}
+# Write the function
+bday_sim = function(n_room) {
+  birthdays = sample(1:365, n_room, replace = TRUE)
+  repeated_bday = length(unique(birthdays)) < n_room
+  repeated_bday
+}
+
+bday_sim(20)
+```
+
+```{r}
+# Run the simulation 10000 times for each group size from 2 to 50
+bday_sim_results = 
+  expand_grid(
+    bdays = 2:50, 
+    iter = 1:10000
+  ) |> 
+  mutate(
+    result = map_lgl(bdays, bday_sim)
+  ) |> 
+  group_by(
+    bdays
+  ) |> 
+  summarize(
+    prob_repeat = mean(result)
+  )
+```
+
+```{r}
+# A plot showing the probability of repeated birthday for each group size
+bday_sim_results |> 
+  ggplot(aes(x = bdays, y = prob_repeat)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(
+    title = "Birthday Simulation",
+    x = "Number of People in the Room",
+    y = "Probability of Shared Birthday"
+  ) + 
+  theme_minimal()
+```
+The plot shows that as the number of people in the room increases, the probability of shared birthday also increases. The probability of shared birthday approaches 1 as the number of people approaching 50. Around 23 people, the probability is approximately 0.5, meaning that there is a 50% chance that two people share the same birthday.
