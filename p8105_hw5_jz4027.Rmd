@@ -129,3 +129,36 @@ power_results |>
   ) +
   theme_minimal()
 ```
+
+# Problem 3
+```{r}
+# import data
+homicides_df <- read_csv("./homicide-data.csv", na = c("NA", ".", "")) |> 
+  janitor::clean_names()
+```
+
+```{r}
+# create city_state variable, summarize homicides within each city_state
+cities_summary <- homicides_df |>
+  mutate(city_state = paste(city, state, sep = ", ")) |>
+  group_by(city_state) |>
+  summarize(
+    total = n(),
+    unsolved = sum(disposition %in% c("Open/No arrest", "Closed without arrest"))
+  )
+cities_summary
+```
+
+```{r}
+# filter out Baltimore MD
+baltimore <- cities_summary |> 
+  filter(city_state == "Baltimore, MD")
+
+# prop.test
+baltimore_proptest <- prop.test(baltimore$unsolved, baltimore$total)
+
+# pull the info
+baltimore_tidy <- broom::tidy(baltimore_proptest) |>
+  select(estimate, conf.low, conf.high)
+baltimore_tidy
+```
