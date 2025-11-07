@@ -7,24 +7,7 @@ output: github_document
 ```{r, include = FALSE, message = FALSE, warning = FALSE}
 library(tidyverse)
 library(broom)
-
-knitr::opts_chunk$set(
-	echo = TRUE,
-	warning = FALSE,
-  fig.width = 6,
-  fig.asp = .6,
-  out.width = "90%"
-)
-
-theme_set(theme_minimal() + theme(legend.position = "bottom"))
-
-options(
-  ggplot2.continuous.colour = "viridis",
-  ggplot2.continuous.fill = "viridis"
-)
-
-scale_colour_discrete = scale_colour_viridis_d
-scale_fill_discrete = scale_fill_viridis_d
+library(purrr)
 
 set.seed(1)
 ```
@@ -43,6 +26,7 @@ bday_sim(20)
 
 ```{r}
 # Run the simulation 10000 times for each group size from 2 to 50
+
 bday_sim_results = 
   expand_grid(
     bdays = 2:50, 
@@ -102,18 +86,21 @@ power_results <- sim_results |>
 ```
 
 ```{r}
-# Power vs True Mean graph
+# Power vs Effect Size graph
 power_results |>
   ggplot(aes(x = mu, y = power)) +
   geom_point() +
   geom_line() +
   labs(
     x = "True Mean (μ)",
-    y = "Power (proportion of times the null was rejected)",
+    y = "Power (probability of correctly rejecting a false null)",
     title = "Power vs True Mean"
   ) +
   theme_minimal()
 ```
+* The power increases as the true mean increases because the effect size gets larger when mu moves further away from 0, so it is easier to detect and reject the null. For example, the power reaches 1.0 for true means greater than or equal to 4. 
+* The null hypothesis is correct when mu is 0, so the power is about 0.05 which is valid since the alpha here is 0.05. 
+* True mean increases -> effect size increases, effect size increase -> power increases
 
 ```{r}
 # Mean vs. Estimated Mean graph
@@ -129,6 +116,8 @@ power_results |>
   ) +
   theme_minimal()
 ```
+* The average estimated mean across all samples closely matches the true mean, suggesting that the sample means are unbiased. 
+* However, the average estimated mean across only samples where null is rejected does not match the true mean, especially for mu equals to 1, 2, and 3. We reject the null when the sample mean is extremely large (far from 0), so by looking only at samples for which the null was rejected, we are focusing on those overrepresented larger-than-average estimates. For large true means, almost all sample means are extremely far from 0 and almost all tests reject the null, so not a big difference between the red and blue line in the graph. For small true means, only unusually large sample means lead to null rejection, making the average of rejected samples noticeably higher. 
 
 # Problem 3
 ```{r}
@@ -136,6 +125,7 @@ power_results |>
 homicides_df <- read_csv("./homicide-data.csv", na = c("NA", ".", "")) |> 
   janitor::clean_names()
 ```
+This dataset has `r nrow(homicides_df)` rows and `r ncol(homicides_df)` columns, where each row represents a single homicide case. The variables include `r names(homicides_df)`
 
 ```{r}
 # create city_state variable, summarize homicides within each city_state
@@ -146,7 +136,7 @@ cities_summary <- homicides_df |>
     total = n(),
     unsolved = sum(disposition %in% c("Open/No arrest", "Closed without arrest"))
   )
-cities_summary
+knitr::kable(cities_summary)
 ```
 
 ```{r}
@@ -158,7 +148,33 @@ baltimore <- cities_summary |>
 baltimore_proptest <- prop.test(baltimore$unsolved, baltimore$total)
 
 # pull the info
-baltimore_tidy <- broom::tidy(baltimore_proptest) |>
+baltimore_results <- broom::tidy(baltimore_proptest) |>
   select(estimate, conf.low, conf.high)
-baltimore_tidy
+knitr::kable(baltimore_results)
+```
+
+```{r}
+each_city_results <- cities_summary |>
+  mutate(
+    cities_proptest = map2(unsolved, total, ~suppressWarnings(prop.test(.x, .y))),
+    cities_tidy = map(cities_proptest, broom::tidy)
+  ) |>
+  unnest(cities_tidy) |>
+  select(city_state, estimate, conf.low, conf.high)
+knitr::kable(each_city_results)
+```
+
+```{r}
+each_city_results |>
+  ggplot(aes(y = fct_reorder(city_state, estimate), 
+             x = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high)) +
+  labs(
+    title = "Unsolved Homicides Proportion and CI by City",
+    x = "Unsolved Homicides Proportion",
+    y = "City_State"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 6)) 
 ```
