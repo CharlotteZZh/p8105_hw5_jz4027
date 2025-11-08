@@ -98,6 +98,7 @@ power_results |>
   ) +
   theme_minimal()
 ```
+
 * The power increases as the true mean increases because the effect size gets larger when mu moves further away from 0, so it is easier to detect and reject the null. For example, the power reaches 1.0 for true means greater than or equal to 4. 
 * The null hypothesis is correct when mu is 0, so the power is about 0.05 which is valid since the alpha here is 0.05. 
 * True mean increases -> effect size increases, effect size increase -> power increases
@@ -116,6 +117,7 @@ power_results |>
   ) +
   theme_minimal()
 ```
+
 * The average estimated mean across all samples closely matches the true mean, suggesting that the sample means are unbiased. 
 * However, the average estimated mean across only samples where null is rejected does not match the true mean, especially for mu equals to 1, 2, and 3. We reject the null when the sample mean is extremely large (far from 0), so by looking only at samples for which the null was rejected, we are focusing on those overrepresented larger-than-average estimates. For large true means, almost all sample means are extremely far from 0 and almost all tests reject the null, so not a big difference between the red and blue line in the graph. For small true means, only unusually large sample means lead to null rejection, making the average of rejected samples noticeably higher. 
 
